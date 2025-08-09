@@ -1,7 +1,9 @@
-# Environment variables
+# env & editor junk
 .env
 .env.local
-.env.production
+.env.*.local
+.vscode/
+.idea/
 
 # Dependencies
 node_modules/
