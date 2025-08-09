@@ -157,3 +157,4 @@ export function validateBubbleQuality(messages, imageSizes) {
   
   return { score: avgScore, issues };
 }
+

@@ -147,3 +147,4 @@ console.log('   ✅ Emergency fallback when all analysis methods fail');
 console.log('   ✅ Enhanced logging for debugging production issues');
 console.log('   ✅ Proper schema validation with detailed error reporting');
 console.log('\n🚀 **Bot is now production-grade and resilient to API issues!**');
+

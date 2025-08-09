@@ -124,3 +124,4 @@ console.log('   Each chat bubble will now get exactly one badge');
 console.log('   Multi-line messages will be merged into single bubbles');  
 console.log('   Badge positioning will be accurate to bubble edges');
 console.log('   No more "Moves" section cluttering the embed');
+

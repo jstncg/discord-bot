@@ -108,3 +108,4 @@ console.log('1. 🔍 "Analyzing..." status message');
 console.log('2. 🎯 Text-based visual showing each message with emoji ratings');
 console.log('3. 📊 Full stats embed with counts, ELO, and summary');
 
+

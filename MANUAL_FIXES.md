@@ -109,3 +109,4 @@ The bot will automatically use this if present.
 ## ✅ **Guaranteed Solution:**
 
 **Use `/debug-review mode:Manual Detection`** - this creates exactly 9 perfectly positioned badges every time, regardless of Vision API accuracy.
+

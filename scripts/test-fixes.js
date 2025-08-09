@@ -40,3 +40,4 @@ try {
 console.log('\n🎯 All systems checked! The bot should now handle timeouts properly.');
 console.log('💡 Try the /review command again - you should see detailed logs in the bot console.');
 
+

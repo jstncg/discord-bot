@@ -178,3 +178,4 @@ console.log('   • Configurable OCR fallback via environment variable');
 console.log('   • Professional-quality badge rendering matching reference');
 
 console.log('\n🎯 **Ready to test with /review command!**');
+

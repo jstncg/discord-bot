@@ -74,3 +74,4 @@ try {
   console.error('❌ Image rendering failed:', error.message);
   console.error('Stack:', error.stack);
 }
+

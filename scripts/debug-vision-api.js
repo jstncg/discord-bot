@@ -49,3 +49,4 @@ console.log('\n🎯 **Next Steps:**');
 console.log('   1. If Vision API works: The issue is with Discord image URLs or interaction timing');
 console.log('   2. If Vision API fails: Check the error message above for specific fixes');
 console.log('   3. Test with your actual Discord screenshot URL to verify');
+

@@ -97,3 +97,4 @@ Then you'll get **actual PNG files** with badges overlaid on the original screen
 
 **But the bot works great without it too!** The text visual fallback is quite nice. 🎭
 
+

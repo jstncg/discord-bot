@@ -238,3 +238,4 @@ function scanStripeForEdge({ cache, page, bubbleColor, stripeY, bbox, side, edge
     score: bestScore
   };
 }
+

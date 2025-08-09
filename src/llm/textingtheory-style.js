@@ -134,3 +134,4 @@ function mapLabelToClassification(label) {
   
   return mapping[label] || 'GOOD';
 }
+

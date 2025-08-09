@@ -28,3 +28,4 @@ if (allGood) {
   console.log('\n📝 Create .env file with your actual credentials first');
 }
 
+

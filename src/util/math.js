@@ -31,3 +31,4 @@ export function clampBBox([x,y,w,h], W, H) {
   return [Math.round(x), Math.round(y), Math.round(w), Math.round(h)];
 }
 
+

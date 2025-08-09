@@ -206,3 +206,4 @@ export async function analyzeWithBestVision({ imageUrls, language = 'en' }) {
     throw new Error('No vision API available - check your API keys');
   }
 }
+
