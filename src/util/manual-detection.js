@@ -150,3 +150,4 @@ export function detectByPattern(visionMessages, imageWidth, imageHeight) {
   return results;
 }
 
+

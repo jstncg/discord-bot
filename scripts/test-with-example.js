@@ -112,3 +112,4 @@ console.log('   1. If this works: The issue is with Discord interaction timing')
 console.log('   2. If this fails: We need to fix the Vision API connection first');
 console.log('   3. Check the generated test-annotated-example.png to see the result');
 
+

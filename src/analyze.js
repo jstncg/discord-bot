@@ -11,35 +11,44 @@ const gemini = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.G
 export async function analyzeChat(imageUrl) {
   console.log('🎯 Starting chat analysis...');
   
-  const prompt = `Analyze this chat screenshot and extract ALL message details for recreation. Return JSON:
+  const prompt = `ANALYZE THIS CHAT SCREENSHOT for exact recreation. Look carefully at bubble positioning:
+
+CRITICAL VISUAL IDENTIFICATION:
+- Look at the ACTUAL VISUAL POSITION of each bubble in the image
+- PURPLE/COLORED bubbles = SENDER (regardless of left/right position)  
+- GRAY/WHITE bubbles = RECEIVER (regardless of left/right position)
+- Do NOT assume based on typical chat layouts - use ACTUAL COLORS
+- Extract the EXACT text from each bubble
+- Get precise HEX color values from the image
+
+Return JSON:
 {
   "messages": [
     {
       "side": "sender|receiver",
-      "text": "exact message content", 
+      "text": "exact message text with no changes",
       "quality": "excellent|great|good|interesting|mistake|blunder"
     }
   ],
   "chat_style": {
-    "background_color": "#f0f0f0",
-    "sender_bubble_color": "#007AFF", 
-    "receiver_bubble_color": "#E5E5EA",
-    "sender_text_color": "white",
-    "receiver_text_color": "black"
+    "background_color": "#EXACT_HEX_COLOR",
+    "sender_bubble_color": "#EXACT_HEX_COLOR", 
+    "receiver_bubble_color": "#EXACT_HEX_COLOR",
+    "sender_text_color": "#EXACT_HEX_COLOR",
+    "receiver_text_color": "#EXACT_HEX_COLOR"
   },
-  "summary": "Brief chat summary",
-  "elo": 1500,
-  "ending": "Chat ending assessment",
+  "summary": "Brief witty summary",
+  "elo": 1400,
+  "ending": "Chat outcome",
   "counts": {"great": 2, "good": 1}
 }
 
-CRITICAL REQUIREMENTS:
-- Extract EXACT message text content
-- Identify sender (right/colored) vs receiver (left/gray) messages
-- Determine chat app style (iMessage, WhatsApp, etc)
-- Rate each message quality
-- I will RECREATE the entire chat from scratch
-- Return ONLY JSON`;
+ACCURACY REQUIREMENTS:
+1. RIGHT SIDE = sender, LEFT SIDE = receiver (DO NOT FLIP)
+2. Extract EXACT hex colors from image pixels
+3. Copy message text WORD-FOR-WORD
+4. Rate message quality/humor appropriately
+5. Return ONLY valid JSON`;
 
   // Try Gemini first (better for spatial analysis)
   if (gemini) {
@@ -120,15 +129,17 @@ async function callOpenAI(imageUrl, prompt) {
 }
 
 function validateAnalysis(analysis) {
-  // Ensure required structure
+  console.log('🔧 Validating analysis and color data...');
+  
+  // Ensure required structure with improved color handling
   const result = {
     messages: [],
-    chat_style: analysis.chat_style || {
-      background_color: '#f0f0f0',
-      sender_bubble_color: '#007AFF', 
-      receiver_bubble_color: '#E5E5EA',
-      sender_text_color: 'white',
-      receiver_text_color: 'black'
+    chat_style: {
+      background_color: analysis.chat_style?.background_color || '#F5F5F5',
+      sender_bubble_color: analysis.chat_style?.sender_bubble_color || '#6D5ACF', 
+      receiver_bubble_color: analysis.chat_style?.receiver_bubble_color || '#E5E5E7',
+      sender_text_color: analysis.chat_style?.sender_text_color || 'white',
+      receiver_text_color: analysis.chat_style?.receiver_text_color || 'black'
     },
     summary: analysis.summary || analysis.summary_line || 'Chat analyzed',
     elo: analysis.elo || 1500,
@@ -136,14 +147,29 @@ function validateAnalysis(analysis) {
     counts: analysis.counts || {}
   };
   
-  // Process messages - no coordinates needed since we're generating from scratch
+  // Process messages with strict sender/receiver validation
   if (analysis.messages && Array.isArray(analysis.messages)) {
-    result.messages = analysis.messages.map((msg, i) => ({
-      side: msg.side === 'sender' || msg.side === 'receiver' ? msg.side : 'receiver',
-      text: msg.text || `Message ${i + 1}`,
-      quality: msg.quality || msg.label || 'good'
-    }));
+    result.messages = analysis.messages.map((msg, i) => {
+      const side = msg.side;
+      if (side !== 'sender' && side !== 'receiver') {
+        console.warn(`⚠️ Invalid side "${side}" for message ${i}, defaulting to receiver`);
+      }
+      
+      return {
+        side: side === 'sender' || side === 'receiver' ? side : 'receiver',
+        text: (msg.text || '').trim() || `Message ${i + 1}`,
+        quality: msg.quality || msg.label || 'good'
+      };
+    });
   }
+  
+  // Validate color format (should be hex)
+  Object.keys(result.chat_style).forEach(key => {
+    const color = result.chat_style[key];
+    if (color && !color.startsWith('#')) {
+      result.chat_style[key] = '#' + color.replace('#', '');
+    }
+  });
   
   // Recompute counts if empty
   if (Object.keys(result.counts).length === 0) {
@@ -154,6 +180,7 @@ function validateAnalysis(analysis) {
     });
   }
   
+  console.log(`✅ Validated: ${result.messages.length} messages, colors: ${JSON.stringify(result.chat_style)}`);
   return result;
 }
 

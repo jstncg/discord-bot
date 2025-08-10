@@ -54,3 +54,4 @@ console.log('   • ELO ratings and game summaries');
 console.log('   • Complete statistical breakdowns');
 console.log('\n💡 **Try it now:** /review images:[your-screenshot]');
 
+
