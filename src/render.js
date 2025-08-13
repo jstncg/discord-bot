@@ -2,32 +2,9 @@ import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Register Inter font for authentic typography with error handling
+// Times New Roman is a system font, no need to register
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fontPath = path.join(__dirname, '..', 'fonts', 'Inter_24pt-Regular.ttf');
-
-try {
-  // Try registering with different family names to see what works
-  registerFont(fontPath, { family: 'Inter' });
-  registerFont(fontPath, { family: 'Inter Regular' });
-  registerFont(fontPath, { family: 'Inter_24pt-Regular' });
-  
-  console.log('✅ Inter font registered with multiple names:', fontPath);
-  
-  // Test all font names
-  const testCanvas = createCanvas(100, 100);
-  const testCtx = testCanvas.getContext('2d');
-  
-  testCtx.font = '20px Inter';
-  testCtx.font = '20px "Inter Regular"';  
-  testCtx.font = '20px "Inter_24pt-Regular"';
-  
-  console.log('🔍 Font test - Inter availability with all variants completed');
-} catch (error) {
-  console.error('❌ Failed to register Inter font:', error.message);
-  console.error('   Font path:', fontPath);
-  console.error('🚨 Will fallback to system fonts');
-}
+console.log('📰 Using Times New Roman font for message rendering');
 
 // Quality to badge image mapping per user requirements
 const BADGE_MAPPING = {
@@ -73,8 +50,8 @@ export async function renderWithBadges(originalImageUrl, analysis) {
   // Temporary context for measurements
   const tempCanvas = createCanvas(100, 100);
   const tempCtx = tempCanvas.getContext('2d');
-  // Try Inter font with fallbacks for measurements
-  tempCtx.font = '20px Inter, "Inter Regular", "Inter_24pt-Regular", -apple-system, sans-serif';
+  // Use Times New Roman for measurements
+  tempCtx.font = '20px "Times New Roman", Times, serif';
   console.log('📏 Measurement font:', tempCtx.font);
   
   messages.forEach((message, index) => {
@@ -114,7 +91,7 @@ export async function renderWithBadges(originalImageUrl, analysis) {
   let currentY = topPadding;
   
   messages.forEach((message, index) => {
-    const bubbleRadius = 20; // iPhone iMessage corner radius
+    const bubbleRadius = 18; // iPhone iMessage corner radius (matching React component)
     const bubbleInfo = bubbleData[index];
     const bubbleHeight = bubbleInfo.height;
     const lines = bubbleInfo.lines;
@@ -151,71 +128,96 @@ export async function renderWithBadges(originalImageUrl, analysis) {
       ctx.shadowOffsetY = 1;
     }
     
-    // COMPLETELY REWRITTEN: Single continuous speech bubble path (NO separate shapes!)
-    console.log(`🎨 Drawing UNIFIED speech bubble for ${message.side} message ${index + 1}`);
+    // Draw seamless speech bubble with tail (inspired by React component)
+    console.log(`🎨 Drawing seamless bubble for ${message.side} message ${index + 1}`);
     
-    // Create ONE path for entire bubble INCLUDING tail (no beginPath/closePath separation)
+    // Create seamless bubble path with smooth tail integration
     ctx.fillStyle = bubbleColor;
     ctx.beginPath();
     
-    const radius = bubbleRadius;
-    const tailSize = 10;
+    const radius = 18; // Match React component radius
+    const tailHeight = 12;
+    const tailWidth = 20;
     
     if (message.side === 'sender') {
-      // SENDER BUBBLE - Rounded rectangle with RIGHT tail built into the path
-      const tailY = currentY + bubbleHeight - 20;
-      
-      // Single continuous path: Start -> Top -> Right -> TAIL -> Bottom -> Left -> Close
-      ctx.moveTo(bubbleX + radius, currentY);
-      
+      // Sent message bubble (right side with tail on bottom right)
       // Top edge
+      ctx.moveTo(bubbleX, currentY + radius);
+      ctx.quadraticCurveTo(bubbleX, currentY, bubbleX + radius, currentY);
       ctx.lineTo(bubbleX + bubbleWidth - radius, currentY);
       ctx.quadraticCurveTo(bubbleX + bubbleWidth, currentY, bubbleX + bubbleWidth, currentY + radius);
       
-      // Right edge with INTEGRATED tail
-      ctx.lineTo(bubbleX + bubbleWidth, tailY);
-      ctx.lineTo(bubbleX + bubbleWidth + tailSize, tailY + tailSize/2); // Tail point  
-      ctx.lineTo(bubbleX + bubbleWidth, tailY + tailSize);
-      ctx.lineTo(bubbleX + bubbleWidth, currentY + bubbleHeight - radius);
+      // Right edge down to tail start
+      ctx.lineTo(bubbleX + bubbleWidth, currentY + bubbleHeight - radius - tailHeight);
+      
+      // Seamless tail curve (smooth integration)
+      ctx.quadraticCurveTo(
+        bubbleX + bubbleWidth, 
+        currentY + bubbleHeight - tailHeight, 
+        bubbleX + bubbleWidth + tailWidth * 0.6, 
+        currentY + bubbleHeight
+      );
+      ctx.quadraticCurveTo(
+        bubbleX + bubbleWidth + tailWidth, 
+        currentY + bubbleHeight, 
+        bubbleX + bubbleWidth + tailWidth * 0.2, 
+        currentY + bubbleHeight
+      );
+      ctx.quadraticCurveTo(
+        bubbleX + bubbleWidth - 4, 
+        currentY + bubbleHeight, 
+        bubbleX + bubbleWidth - radius, 
+        currentY + bubbleHeight
+      );
       
       // Bottom edge
-      ctx.quadraticCurveTo(bubbleX + bubbleWidth, currentY + bubbleHeight, bubbleX + bubbleWidth - radius, currentY + bubbleHeight);
       ctx.lineTo(bubbleX + radius, currentY + bubbleHeight);
-      
-      // Left edge  
       ctx.quadraticCurveTo(bubbleX, currentY + bubbleHeight, bubbleX, currentY + bubbleHeight - radius);
+      
+      // Left edge
       ctx.lineTo(bubbleX, currentY + radius);
-      ctx.quadraticCurveTo(bubbleX, currentY, bubbleX + radius, currentY);
       
     } else {
-      // RECEIVER BUBBLE - Rounded rectangle with LEFT tail built into the path
-      const tailY = currentY + bubbleHeight - 20;
-      
-      // Single continuous path: Start -> Top -> Right -> Bottom -> Left -> TAIL -> Close
-      ctx.moveTo(bubbleX + radius, currentY);
-      
+      // Received message bubble (left side with tail on bottom left)
       // Top edge
+      ctx.moveTo(bubbleX + radius, currentY);
       ctx.lineTo(bubbleX + bubbleWidth - radius, currentY);
       ctx.quadraticCurveTo(bubbleX + bubbleWidth, currentY, bubbleX + bubbleWidth, currentY + radius);
       
       // Right edge
       ctx.lineTo(bubbleX + bubbleWidth, currentY + bubbleHeight - radius);
-      
-      // Bottom edge
       ctx.quadraticCurveTo(bubbleX + bubbleWidth, currentY + bubbleHeight, bubbleX + bubbleWidth - radius, currentY + bubbleHeight);
-      ctx.lineTo(bubbleX + radius, currentY + bubbleHeight);
       
-      // Left edge with INTEGRATED tail
-      ctx.quadraticCurveTo(bubbleX, currentY + bubbleHeight, bubbleX, currentY + bubbleHeight - radius);
-      ctx.lineTo(bubbleX, tailY + tailSize);
-      ctx.lineTo(bubbleX - tailSize, tailY + tailSize/2); // Tail point
-      ctx.lineTo(bubbleX, tailY);
+      // Bottom edge to tail start
+      ctx.lineTo(bubbleX + radius + tailHeight, currentY + bubbleHeight);
+      
+      // Seamless tail curve (smooth integration)
+      ctx.quadraticCurveTo(
+        bubbleX + tailHeight * 0.2, 
+        currentY + bubbleHeight, 
+        bubbleX - tailWidth * 0.2, 
+        currentY + bubbleHeight
+      );
+      ctx.quadraticCurveTo(
+        bubbleX - tailWidth, 
+        currentY + bubbleHeight, 
+        bubbleX - tailWidth * 0.6, 
+        currentY + bubbleHeight
+      );
+      ctx.quadraticCurveTo(
+        bubbleX, 
+        currentY + bubbleHeight - tailHeight, 
+        bubbleX, 
+        currentY + bubbleHeight - radius - tailHeight
+      );
+      
+      // Left edge
       ctx.lineTo(bubbleX, currentY + radius);
       ctx.quadraticCurveTo(bubbleX, currentY, bubbleX + radius, currentY);
     }
     
     ctx.closePath();
-    console.log(`   ✅ Single path created with ${message.side === 'sender' ? 'RIGHT' : 'LEFT'} tail integrated`);
+    console.log(`   ✅ Seamless bubble with smooth tail created for ${message.side === 'sender' ? 'RIGHT' : 'LEFT'} side`);
     
     ctx.fill();
     ctx.shadowColor = 'transparent'; // Reset shadow
@@ -223,15 +225,8 @@ export async function renderWithBadges(originalImageUrl, analysis) {
     // Render text with calculated font size (fills ~90% of bubble height)
     const finalFontSize = Math.max(16, bubbleHeight * 0.7); // 70% of bubble height, minimum 16px
     ctx.fillStyle = textColor;
-    // Try different Inter font names to ensure it works
-    const fontOptions = [
-      `${finalFontSize}px Inter, -apple-system, sans-serif`,
-      `${finalFontSize}px "Inter Regular", -apple-system, sans-serif`, 
-      `${finalFontSize}px "Inter_24pt-Regular", -apple-system, sans-serif`
-    ];
-    
-    // Use the first font option for now
-    ctx.font = fontOptions[0];
+    // Use Times New Roman font
+    ctx.font = `${finalFontSize}px "Times New Roman", Times, serif`;
     console.log(`🔤 Using font: ${ctx.font} for message ${index + 1}`);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -274,16 +269,16 @@ export async function renderWithBadges(originalImageUrl, analysis) {
     const badgeFile = BADGE_MAPPING[bubble.quality] || 'good move.png';
     const badgeSize = 30; // Larger badges to match proportional text and bubbles
     const margin = 14; // Proportional margins
+    const tailWidth = 20; // Match the tail width from bubble drawing
     
     let badgeX, badgeY;
     
       if (bubble.side === 'sender') {
-        // Sender messages → badge on LEFT of bubble (account for right-pointing tail extending 12px right)
+        // Sender messages → badge on LEFT of bubble (tail extends right)
         badgeX = Math.max(4, bubble.x - margin - badgeSize);
       } else {
-        // Receiver messages → badge on RIGHT of bubble (account for left-pointing tail extending 12px left)  
-        const tailOffset = 12; // Left-pointing tail extends 12px left from bubble
-        badgeX = Math.min(canvasWidth - badgeSize - 4, bubble.x + bubble.width + margin + tailOffset);
+        // Receiver messages → badge on RIGHT of bubble (tail extends left by tailWidth)  
+        badgeX = Math.min(canvasWidth - badgeSize - 4, bubble.x + bubble.width + margin);
       }
     
     // Center badge vertically with bubble
