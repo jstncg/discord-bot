@@ -2,8 +2,8 @@
 import {
   SlashCommandBuilder, AttachmentBuilder, PermissionFlagsBits
 } from 'discord.js';
-import { analyzeImages } from '../llm/analyze.js';
-import { renderAnnotated } from '../render/canvas.js';
+import { analyzeChat } from '../analyze.js';
+import { renderWithBadges } from '../render.js';
 import { createMockAnnotatedImage } from '../render/text-visual.js';
 import { buildEmbed, pngAttachment } from '../util/discord.js';
 import { friendly } from '../util/errors.js';
@@ -80,13 +80,25 @@ export async function execute(interaction) {
 
     // Step 2: Perform analysis with aggressive timeout
     console.log('🔍 Starting image analysis...');
-    const review = await analyzeImages({ imageUrls: urls, language: 'en' });
-    console.log('✅ Analysis complete! Found', review.messages.length, 'messages');
+    // Note: analyzeChat expects a single image URL, use the first one
+    const primaryImageUrl = urls[0];
+    const analysis = await analyzeChat(primaryImageUrl);
+    console.log('✅ Analysis complete! Found', analysis.messages.length, 'messages');
+
+    // Convert data format for compatibility with buildEmbed
+    analysis.summary_line = analysis.summary || 'Chat analyzed successfully';
+    if (analysis.messages) {
+      analysis.messages.forEach(msg => {
+        if (msg.quality && !msg.label) {
+          msg.label = msg.quality; // Map quality -> label
+        }
+      });
+    }
 
     // Step 3: Send annotated image first (if canvas available)
     try {
-      console.log('🎨 Attempting to render annotated image...');
-      const png = await renderAnnotated(review, urls);
+      console.log('🎨 Attempting to render properly positioned chat bubbles...');
+      const png = await renderWithBadges(primaryImageUrl, analysis);
       const file = pngAttachment(png);
       console.log('✅ Sending annotated image...');
       await interaction.editReply({ 
@@ -96,21 +108,21 @@ export async function execute(interaction) {
       
       // Step 4: Follow up with stats embed
       console.log('📊 Sending stats embed...');
-      const embed = buildEmbed(review);
+      const embed = buildEmbed(analysis);
       await interaction.followUp({ embeds: [embed] });
       
     } catch (renderErr) {
       console.warn('🎨 Image rendering failed, using text visual fallback:', renderErr.message);
       
       // Step 3b: Send text-based visual representation 
-      const mockImage = createMockAnnotatedImage(review);
+      const mockImage = createMockAnnotatedImage(analysis);
       await interaction.editReply({ 
         content: mockImage 
       });
       
       // Step 4b: Follow up with stats embed
       console.log('📊 Sending stats embed...');
-      const embed = buildEmbed(review);
+      const embed = buildEmbed(analysis);
       embed.setFooter({ text: 'Entertainment only. No advice. (Install canvas for full image rendering)' });
       await interaction.followUp({ embeds: [embed] });
     }

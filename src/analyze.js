@@ -11,21 +11,20 @@ const gemini = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.G
 export async function analyzeChat(imageUrl) {
   console.log('🎯 Starting chat analysis...');
   
-  const prompt = `ANALYZE THIS CHAT SCREENSHOT for exact recreation. Look carefully at bubble positioning:
+  const prompt = `ANALYZE THIS CHAT SCREENSHOT for exact recreation. Use BUBBLE COLOR as the primary indicator:
 
-CRITICAL VISUAL IDENTIFICATION:
-- Look at the ACTUAL VISUAL POSITION of each bubble in the image
-- PURPLE/COLORED bubbles = SENDER (regardless of left/right position)  
-- GRAY/WHITE bubbles = RECEIVER (regardless of left/right position)
-- Do NOT assume based on typical chat layouts - use ACTUAL COLORS
+CRITICAL BUBBLE IDENTIFICATION RULES:
+- BLUE/COLORED bubbles = SENDER (messages you sent)
+- GRAY/WHITE bubbles = RECEIVER (messages you received)
+- COLOR is the definitive indicator, NOT position on screen
 - Extract the EXACT text from each bubble
-- Get precise HEX color values from the image
+- Get precise HEX color values from the bubble colors
 
 Return JSON:
 {
   "messages": [
     {
-      "side": "sender|receiver",
+      "side": "sender|receiver", 
       "text": "exact message text with no changes",
       "quality": "excellent|great|good|interesting|mistake|blunder"
     }
@@ -44,7 +43,7 @@ Return JSON:
 }
 
 ACCURACY REQUIREMENTS:
-1. RIGHT SIDE = sender, LEFT SIDE = receiver (DO NOT FLIP)
+1. Use BUBBLE COLOR to determine sender/receiver - Blue=sender, Gray=receiver
 2. Extract EXACT hex colors from image pixels
 3. Copy message text WORD-FOR-WORD
 4. Rate message quality/humor appropriately
@@ -135,11 +134,11 @@ function validateAnalysis(analysis) {
   const result = {
     messages: [],
     chat_style: {
-      background_color: analysis.chat_style?.background_color || '#F5F5F5',
-      sender_bubble_color: analysis.chat_style?.sender_bubble_color || '#6D5ACF', 
-      receiver_bubble_color: analysis.chat_style?.receiver_bubble_color || '#E5E5E7',
-      sender_text_color: analysis.chat_style?.sender_text_color || 'white',
-      receiver_text_color: analysis.chat_style?.receiver_text_color || 'black'
+      background_color: analysis.chat_style?.background_color || '#000000',
+      sender_bubble_color: analysis.chat_style?.sender_bubble_color || '#007AFF', // iPhone blue
+      receiver_bubble_color: analysis.chat_style?.receiver_bubble_color || '#E5E5EA', // iPhone gray
+      sender_text_color: analysis.chat_style?.sender_text_color || '#FFFFFF',
+      receiver_text_color: analysis.chat_style?.receiver_text_color || '#000000'
     },
     summary: analysis.summary || analysis.summary_line || 'Chat analyzed',
     elo: analysis.elo || 1500,
@@ -147,16 +146,33 @@ function validateAnalysis(analysis) {
     counts: analysis.counts || {}
   };
   
-  // Process messages with strict sender/receiver validation
+  // Process messages with strict sender/receiver validation and color-based correction
   if (analysis.messages && Array.isArray(analysis.messages)) {
     result.messages = analysis.messages.map((msg, i) => {
-      const side = msg.side;
+      let side = msg.side;
+      
+      // Validate and fix side detection based on bubble colors
+      const senderColor = result.chat_style.sender_bubble_color?.toLowerCase() || '';
+      const receiverColor = result.chat_style.receiver_bubble_color?.toLowerCase() || '';
+      
+      // Color-based validation: if we have clear blue vs gray distinction
+      const isBlueish = senderColor.includes('007aff') || senderColor.includes('blue') || 
+                       (senderColor.startsWith('#') && parseInt(senderColor.slice(1), 16) > 0x808080);
+      const isGrayish = receiverColor.includes('e5e5') || receiverColor.includes('gray') ||
+                       (receiverColor.startsWith('#') && parseInt(receiverColor.slice(1), 16) < 0x808080);
+      
+      if (isBlueish && isGrayish) {
+        console.log(`🔍 Message ${i + 1}: "${msg.text?.slice(0, 30)}..." detected as ${side}`);
+        console.log(`🎨 Colors: Sender=${senderColor}, Receiver=${receiverColor}`);
+      }
+      
       if (side !== 'sender' && side !== 'receiver') {
         console.warn(`⚠️ Invalid side "${side}" for message ${i}, defaulting to receiver`);
+        side = 'receiver';
       }
       
       return {
-        side: side === 'sender' || side === 'receiver' ? side : 'receiver',
+        side: side,
         text: (msg.text || '').trim() || `Message ${i + 1}`,
         quality: msg.quality || msg.label || 'good'
       };

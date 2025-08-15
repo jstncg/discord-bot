@@ -50,15 +50,15 @@ export async function renderWithBadges(originalImageUrl, analysis) {
   // Temporary context for measurements
   const tempCanvas = createCanvas(100, 100);
   const tempCtx = tempCanvas.getContext('2d');
-  // Use Times New Roman for measurements
-  tempCtx.font = '20px "Times New Roman", Times, serif';
+  // Use system font for measurements (matching the rendering font)
+  tempCtx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
   console.log('📏 Measurement font:', tempCtx.font);
   
   messages.forEach((message, index) => {
     const maxBubbleWidth = canvasWidth * 0.75;
     const padding = 16;
     const lines = wrapTextForMeasurement(tempCtx, message.text, maxBubbleWidth - padding);
-    const lineHeight = 20 * 1.2;
+    const lineHeight = 18 * 1.2; // Match the measurement font size
     const textHeight = lines.length * lineHeight;
     const bubbleHeight = Math.max(40, textHeight + padding);
     
@@ -220,27 +220,40 @@ export async function renderWithBadges(originalImageUrl, analysis) {
     console.log(`   ✅ Seamless bubble with smooth tail created for ${message.side === 'sender' ? 'RIGHT' : 'LEFT'} side`);
     
     ctx.fill();
-    ctx.shadowColor = 'transparent'; // Reset shadow
     
-    // Render text with calculated font size (fills ~90% of bubble height)
-    const finalFontSize = Math.max(16, bubbleHeight * 0.7); // 70% of bubble height, minimum 16px
+    // Reset all canvas state that might affect text rendering
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Use consistent font size with measurements for proper text fitting
+    const finalFontSize = 18; // Fixed size matching measurement font for consistency
     ctx.fillStyle = textColor;
-    // Use Times New Roman font
-    ctx.font = `${finalFontSize}px "Times New Roman", Times, serif`;
+    // Use system font for better compatibility
+    ctx.font = `${finalFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
     console.log(`🔤 Using font: ${ctx.font} for message ${index + 1}`);
+    
+    // Set text alignment for centering within bubble
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Enable crisp text rendering for iPhone-like quality
-    ctx.textRenderingOptimization = 'optimizeQuality';
+    // Calculate text position to center within the actual bubble (not including tail)
+    const bubbleCenterX = bubbleX + bubbleWidth / 2;
+    const bubbleCenterY = currentY + bubbleHeight / 2;
     
-    // Render text lines with exact spacing
-    const actualLineHeight = finalFontSize * 1.15;
+    // Calculate line spacing (matching measurement calculations)  
+    const actualLineHeight = 18 * 1.2;
     const totalTextHeight = lines.length * actualLineHeight;
-    const startY = currentY + bubbleHeight / 2 - totalTextHeight / 2 + actualLineHeight / 2;
+    const textStartY = bubbleCenterY - totalTextHeight / 2 + actualLineHeight / 2;
     
+    console.log(`   📍 Text positioning: bubble center (${bubbleCenterX}, ${bubbleCenterY}), text start Y: ${textStartY}`);
+    
+    // Render each line of text centered in the bubble
     lines.forEach((line, lineIndex) => {
-      ctx.fillText(line, textX, startY + (lineIndex * actualLineHeight));
+      const lineY = textStartY + (lineIndex * actualLineHeight);
+      ctx.fillText(line, bubbleCenterX, lineY);
+      console.log(`   📝 Line ${lineIndex + 1}: "${line}" at (${bubbleCenterX}, ${lineY})`);
     });
     
     // Store bubble position for badge placement
